@@ -3,6 +3,7 @@
   "private": true,
   "description": "Pakistan electric marketplace monorepo (web + Android)",
   "scripts": {
+    "api": "python3 apps/api/server.py",
     "web": "npm --prefix apps/web start",
     "test": "node -e \"console.log('bijli monorepo ok')\""
   }
