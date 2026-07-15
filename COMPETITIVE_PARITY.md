@@ -12,3 +12,7 @@
 ```bash
 cd apps/api && python3 server.py
 ```
+
+## v3
+See GAP_ANALYSIS.md — multi-rail payments + undercut pricing + gap features.
+
