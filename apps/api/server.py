@@ -5,6 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from http_util import JsonAPI, serve, uid, iso
 import payments as pay
+import auth as authmod
 
 PRODUCTS = [
     {"id": "p1", "title": "550W Mono Solar Panel", "category": "panels", "brand": "Longi", "watt": 550,
@@ -27,13 +28,18 @@ CARTS, RFQS, ORDERS, INSTALLS, WARRANTIES, QUOTES = {}, {}, {}, {}, {}, []
 
 class H(JsonAPI):
     def do_GET(self):
+        _path_early = (self.path.split("?")[0].rstrip("/") or "/")
+        if _path_early.startswith("/auth"):
+            hdrs = {k: v for k, v in self.headers.items()}
+            code, body = authmod.handle_auth_request("GET", _path_early, {}, hdrs, product="bijli")
+            return self._send(code, body)
         path, q = self.parse()
         if path in ("/", "/health"):
             return self._send(200, {"ok": True, "service": "bijli", "version": "3.0.0",
                 "gaps_closed": ["install_booking", "emi_calculator", "warranty_tracking", "stripe_multi_rail", "undercut"]})
         if path == "/capabilities":
             return self._send(200, {"ok": True, "competitor": "solar marketplaces / Daraz electrical",
-                "features": ["catalog", "filters", "rfq", "quotes", "cart", "checkout", "install_booking", "emi", "warranty", "stripe", "jazzcash"]})
+                "features": ["catalog", "filters", "rfq", "quotes", "cart", "checkout", "install_booking", "emi", "warranty", "stripe", "signup", "login", "otp", "oauth_google", "oauth_facebook", "jazzcash"]})
         if path == "/pricing": return self._send(200, {"ok": True, **pay.pricing_for("bijli")})
         if path == "/payments/rails": return self._send(200, {"ok": True, "rails": pay.list_rails()})
         if path == "/gap-analysis":
@@ -78,6 +84,12 @@ class H(JsonAPI):
         self._send(404, {"ok": False})
 
     def do_POST(self):
+        _path_early = (self.path.split("?")[0].rstrip("/") or "/")
+        if _path_early.startswith("/auth"):
+            hdrs = {k: v for k, v in self.headers.items()}
+            body = self._read_json() if hasattr(self, "_read_json") else self._read()
+            code, resp = authmod.handle_auth_request("POST", _path_early, body if isinstance(body, dict) else {}, hdrs, product="bijli")
+            return self._send(code, resp)
         path, _ = self.parse()
         body = self._read_json()
         if path == "/cart/add":
